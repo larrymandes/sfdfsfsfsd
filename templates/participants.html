@@ -30,12 +30,16 @@
 
         <nav class="nav-tabs">
             <a href="/game" class="nav-tab">
-                <div class="nav-tab-icon"><i class="fas fa-dice"></i></div>
+                <div class="nav-tab-icon"><i class="fas fa-dice-three"></i></div>
                 <div class="nav-tab-text">Главная</div>
             </a>
             <a href="/participants" class="nav-tab active">
                 <div class="nav-tab-icon"><i class="fas fa-users"></i></div>
                 <div class="nav-tab-text">Участники</div>
+            </a>
+            <a href="/news" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-newspaper"></i></div>
+                <div class="nav-tab-text">Новости</div>
             </a>
         </nav>
     </div>
@@ -72,6 +76,14 @@
                 return;
             }
             
+            // Сортируем победителей по количеству попыток (от наименьшего к наибольшему)
+            winners.sort((a, b) => a.win_attempts - b.win_attempts);
+            
+            // Добавляем ранг каждому победителю
+            winners.forEach((winner, index) => {
+                winner.rank = index + 1;
+            });
+            
             // Добавляем победителей в список
             winners.forEach((winner) => {
                 const participantItem = document.createElement('div');
@@ -86,6 +98,7 @@
                         <div class="participant-name">${displayName} <i class="fas fa-trophy success-icon"></i></div>
                         <div class="participant-attempts">Участвует с ${winner.win_attempts} ${getAttemptsWord(winner.win_attempts)}</div>
                     </div>
+                    <div class="rank-number">${winner.rank}</div>
                 `;
                 
                 participantsList.appendChild(participantItem);
