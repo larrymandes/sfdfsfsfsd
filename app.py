@@ -201,4 +201,4 @@ def check_user_status():
     })
 
 if __name__ == '__main__':
-    app.run(port=5500, debug=True) 
+    app.run(port=10000, debug=True) 
