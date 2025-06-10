@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Розыгрыш</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="welcome-screen">
+            <!-- Lottie анимация вместо TGS -->
+            <div class="sticker-container">
+                <lottie-player
+                    src="{{ url_for('static', filename='stickers/start.json') }}"
+                    background="transparent"
+                    speed="1"
+                    style="width: 200px; height: 200px;"
+                    autoplay
+                    loop
+                ></lottie-player>
+            </div>
+            
+            <h1>Испытай свою удачу</h1>
+            <p>Это приложение разработано специально для проведения розыгрыша. Проверь, насколько тебе улыбается удача!</p>
+            
+            <a href="/game" class="btn btn-large">Продолжить</a>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sticker-loader.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/font-loader.js') }}"></script>
+    <script>
+        // Функция для контроля цикличности стикеров
+        function setupStickerBehavior() {
+            const stickers = document.querySelectorAll('lottie-player');
+            stickers.forEach(sticker => {
+                const src = sticker.getAttribute('src') || '';
+                // Проверяем, это loading2 или нет
+                if (!src.includes('start')) {
+                    // Убедимся что атрибут loop отсутствует
+                    sticker.removeAttribute('loop');
+                    
+                    // Добавляем обработчик остановки после одного проигрывания
+                    sticker.addEventListener('complete', function() {
+                        this.stop();
+                        console.log('Стартовая анимация остановлена после первого проигрывания');
+                    });
+                }
+            });
+        }
+    
+        document.addEventListener('DOMContentLoaded', function() {
+            // Настраиваем поведение стикеров
+            setupStickerBehavior();
+            
+            // Если мы находимся в Telegram WebApp, сохраняем пользователя
+            if (tg) {
+                saveUserToDb();
+            }
+        });
+    </script>
+</body>
+</html> 

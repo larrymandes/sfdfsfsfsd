@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Розыгрыш - Участники</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="user-info">
+            <img id="user-avatar" class="user-avatar" src="https://via.placeholder.com/40" alt="Аватар">
+            <span id="user-name" class="user-name">Загрузка...</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <h1 style="text-align: center; margin: 20px 0;">Участники розыгрыша</h1>
+            
+            <div class="participants-list" id="participants-list">
+                <div style="text-align: center; padding: 30px 0;">
+                    <div class="loader"></div>
+                    <p style="margin-top: 20px;">Загрузка списка участников...</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav-tabs">
+            <a href="/game" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-dice"></i></div>
+                <div class="nav-tab-text">Главная</div>
+            </a>
+            <a href="/participants" class="nav-tab active">
+                <div class="nav-tab-icon"><i class="fas fa-users"></i></div>
+                <div class="nav-tab-text">Участники</div>
+            </a>
+        </nav>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Инициализация пользователя
+            const user = await saveUserToDb();
+            
+            // Если пользователь получен, отображаем его данные
+            if (user) {
+                document.getElementById('user-name').textContent = user.first_name || 'Пользователь';
+                if (user.photo_url) {
+                    document.getElementById('user-avatar').src = user.photo_url;
+                }
+            }
+
+            // Получаем список победителей
+            const winners = await getWinners();
+            const participantsList = document.getElementById('participants-list');
+            
+            // Очищаем список
+            participantsList.innerHTML = '';
+            
+            // Если победителей нет, показываем сообщение
+            if (winners.length === 0) {
+                participantsList.innerHTML = `
+                    <div style="text-align: center; padding: 40px 0;">
+                        <i class="fas fa-users" style="font-size: 48px; color: var(--accent-color); margin-bottom: 20px;"></i>
+                        <p>Пока нет участников. Будьте первым!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Добавляем победителей в список
+            winners.forEach((winner) => {
+                const participantItem = document.createElement('div');
+                participantItem.className = 'participant-item';
+                
+                const avatarUrl = winner.photo_url || 'https://via.placeholder.com/40';
+                const displayName = winner.first_name || 'Участник';
+                
+                participantItem.innerHTML = `
+                    <img class="user-avatar" src="${avatarUrl}" alt="Аватар">
+                    <div class="participant-info">
+                        <div class="participant-name">${displayName} <i class="fas fa-trophy success-icon"></i></div>
+                        <div class="participant-attempts">Участвует с ${winner.win_attempts} ${getAttemptsWord(winner.win_attempts)}</div>
+                    </div>
+                `;
+                
+                participantsList.appendChild(participantItem);
+            });
+        });
+        
+        // Функция для правильного склонения слова "попытка"
+        function getAttemptsWord(attempts) {
+            const cases = [2, 0, 1, 1, 1, 2];
+            const words = ['попытки', 'попытки', 'попыток'];
+            return words[(attempts % 100 > 4 && attempts % 100 < 20) ? 2 : cases[Math.min(attempts % 10, 5)]];
+        }
+    </script>
+</body>
+</html> 

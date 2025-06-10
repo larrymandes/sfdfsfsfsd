@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Розыгрыш - Испытай удачу</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="user-info">
+            <img id="user-avatar" class="user-avatar" src="https://via.placeholder.com/40" alt="Аватар">
+            <span id="user-name" class="user-name">Загрузка...</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="game-screen">
+            <div class="game-container">
+                <!-- Фиксированный контейнер для стикера и результата -->
+                <div class="result-container">
+                    <!-- Сначала текст результата -->
+                    <div id="result-message" class="result-message">Попробуйте испытать удачу чтобы принять участие!</div>
+                    
+                    <!-- Затем Lottie анимация -->
+                    <div class="sticker-container" id="sticker-container">
+                        <lottie-player
+                            id="sticker"
+                            src="{{ url_for('static', filename='stickers/loading2.json') }}"
+                            background="transparent"
+                            speed="1"
+                            loop
+                            autoplay
+                        ></lottie-player>
+                    </div>
+
+                    <div id="attempts-counter" class="attempts-counter">Попыток: 0</div>
+                </div>
+
+                <button id="try-luck-btn" class="btn btn-large">Испытать удачу</button>
+            </div>
+        </div>
+
+        <nav class="nav-tabs">
+            <a href="/game" class="nav-tab active">
+                <div class="nav-tab-icon"><i class="fas fa-dice"></i></div>
+                <div class="nav-tab-text">Главная</div>
+            </a>
+            <a href="/participants" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-users"></i></div>
+                <div class="nav-tab-text">Участники</div>
+            </a>
+        </nav>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sticker-loader.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/font-loader.js') }}"></script>
+    <script>
+        // Функция для загрузки стикера с контролем цикличности
+        function loadSticker(stickerId, src, shouldLoop = false) {
+            const stickerElem = document.getElementById(stickerId);
+            if (stickerElem) {
+                // Удаляем существующие обработчики
+                const newStickerElem = stickerElem.cloneNode(false);
+                stickerElem.parentNode.replaceChild(newStickerElem, stickerElem);
+                
+                // Устанавливаем атрибуты
+                newStickerElem.setAttribute('src', src);
+                newStickerElem.setAttribute('background', 'transparent');
+                newStickerElem.setAttribute('speed', '1');
+                newStickerElem.setAttribute('autoplay', '');
+                
+                if (shouldLoop) {
+                    newStickerElem.setAttribute('loop', '');
+                } else {
+                    // Добавляем обработчик для остановки после одного цикла
+                    newStickerElem.addEventListener('complete', function() {
+                        this.stop();
+                        console.log('Анимация остановлена после первого проигрывания');
+                    });
+                }
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Блокировка кнопки на 1.5 секунды после нажатия
+            let buttonLocked = false;
+            
+            // Инициализация пользователя
+            const user = await saveUserToDb();
+            
+            // Если пользователь получен, отображаем его данные
+            if (user) {
+                document.getElementById('user-name').textContent = user.first_name || 'Пользователь';
+                if (user.photo_url) {
+                    document.getElementById('user-avatar').src = user.photo_url;
+                }
+            }
+
+            // Проверяем статус пользователя (выиграл или нет)
+            const userStatus = await checkUserStatus();
+            document.getElementById('attempts-counter').textContent = `Попыток: ${userStatus.attempts}`;
+
+            // Если пользователь уже выиграл, показываем соответствующий стикер и сообщение
+            if (userStatus.won) {
+                loadSticker('sticker', "{{ url_for('static', filename='stickers/win.json') }}", false);
+                document.getElementById('result-message').textContent = 'Поздравляем! Вы наконец-то выиграли!';
+                
+                // Блокируем кнопку и делаем её серой навсегда
+                const tryLuckBtn = document.getElementById('try-luck-btn');
+                tryLuckBtn.disabled = true;
+                tryLuckBtn.classList.add('btn-secondary');
+                
+                // Сохраняем состояние в localStorage для сохранения при навигации
+                localStorage.setItem('userWon', 'true');
+            } else if (localStorage.getItem('userWon') === 'true') {
+                // Если пользователь вернулся с другой страницы, но ранее выиграл
+                loadSticker('sticker', "{{ url_for('static', filename='stickers/win.json') }}", false);
+                document.getElementById('result-message').textContent = 'Поздравляем! Вы наконец-то выиграли!';
+                
+                // Блокируем кнопку и делаем её серой навсегда
+                const tryLuckBtn = document.getElementById('try-luck-btn');
+                tryLuckBtn.disabled = true;
+                tryLuckBtn.classList.add('btn-secondary');
+            }
+
+            // Обработка кликов по вкладкам навигации - сохранение состояния выигрыша
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Если пользователь выиграл, сохраняем это состояние
+                    if (document.getElementById('try-luck-btn').disabled) {
+                        localStorage.setItem('userWon', 'true');
+                    }
+                });
+            });
+
+            // Обработчик кнопки "Испытать удачу"
+            document.getElementById('try-luck-btn').addEventListener('click', async function() {
+                // Проверяем блокировку кнопки
+                if (buttonLocked) return;
+                
+                // Блокируем кнопку на 1.5 секунды
+                buttonLocked = true;
+                document.getElementById('try-luck-btn').classList.add('btn-locked');
+                
+                setTimeout(() => {
+                    buttonLocked = false;
+                    if (!document.getElementById('try-luck-btn').disabled) {
+                        document.getElementById('try-luck-btn').classList.remove('btn-locked');
+                    }
+                }, 1500);
+                
+                const result = await tryLuck();
+                
+                if (result) {
+                    document.getElementById('attempts-counter').textContent = `Попыток: ${result.attempts}`;
+                    
+                    if (result.result === 'won') {
+                        // Показываем анимацию выигрыша
+                        loadSticker('sticker', "{{ url_for('static', filename='stickers/win.json') }}", false);
+                        document.getElementById('result-message').textContent = 'Поздравляем! Вы наконец-то выиграли!';
+                        
+                        // Блокируем кнопку и делаем её серой навсегда
+                        const tryLuckBtn = document.getElementById('try-luck-btn');
+                        tryLuckBtn.disabled = true;
+                        tryLuckBtn.classList.add('btn-secondary');
+                        
+                        // Сохраняем состояние в localStorage
+                        localStorage.setItem('userWon', 'true');
+                        
+                    } else if (result.result === 'already_won') {
+                        // Если уже выиграл ранее
+                        loadSticker('sticker', "{{ url_for('static', filename='stickers/win.json') }}", false);
+                        document.getElementById('result-message').textContent = 'Поздравляем! Вы наконец-то выиграли!';
+                        
+                        // Блокируем кнопку и делаем её серой навсегда
+                        const tryLuckBtn = document.getElementById('try-luck-btn');
+                        tryLuckBtn.disabled = true;
+                        tryLuckBtn.classList.add('btn-secondary');
+                        
+                        // Сохраняем состояние в localStorage
+                        localStorage.setItem('userWon', 'true');
+                        
+                    } else {
+                        // Показываем анимацию проигрыша (выбираем рандомно)
+                        const loseFiles = [
+                            "{{ url_for('static', filename='stickers/lose1.json') }}",
+                            "{{ url_for('static', filename='stickers/lose2.json') }}",
+                            "{{ url_for('static', filename='stickers/lose3.json') }}",
+                            "{{ url_for('static', filename='stickers/lose4.json') }}"
+                        ];
+                        const randomLoseFile = loseFiles[Math.floor(Math.random() * loseFiles.length)];
+                        
+                        loadSticker('sticker', randomLoseFile, false);
+                        document.getElementById('result-message').textContent = 'Вы проиграли. Попробуйте ещё раз!';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
