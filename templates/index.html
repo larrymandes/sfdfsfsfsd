@@ -39,7 +39,15 @@
             const stickers = document.querySelectorAll('lottie-player');
             stickers.forEach(sticker => {
                 const src = sticker.getAttribute('src') || '';
-                // Проверяем, это loading2 или нет
+                
+                // Если стикер уже в кэше, используем его
+                const fileName = src.split('/').pop().split('.')[0];
+                if (window.stickerCache && window.stickerCache[fileName]) {
+                    console.log(`Используем кэшированный стикер ${fileName}`);
+                    sticker.load(window.stickerCache[fileName]);
+                }
+                
+                // Проверяем, это стартовый стикер или нет
                 if (!src.includes('start')) {
                     // Убедимся что атрибут loop отсутствует
                     sticker.removeAttribute('loop');
