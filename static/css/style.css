@@ -1,4 +1,4 @@
-@font-face {
+/* @font-face {
     font-family: 'SF Pro Display';
     src: url('/static/fonts/sf-pro-display-regular.woff2') format('woff2'),
          url('/static/fonts/sf-pro-display-regular.woff') format('woff');
@@ -20,7 +20,7 @@
          url('/static/fonts/sf-pro-display-medium.woff') format('woff');
     font-weight: 500;
     font-style: normal;
-}
+} */
 
 * {
     margin: 0;
@@ -257,17 +257,35 @@ body {
 }
 
 .participants-list {
-    width: 100%;
-    max-width: 500px;
-    margin: 15px auto;
-    padding-bottom: 80px;
+    margin-top: 20px;
+    background-color: var(--background-color);
+    border-radius: 15px;
+    overflow: hidden;
+    padding: 10px;
 }
 
 .participant-item {
     display: flex;
     align-items: center;
-    padding: 12px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    background-color: var(--card-background);
+    border-radius: 10px;
+    position: relative;
+}
+
+.rank-number {
+    position: absolute;
+    right: 15px;
+    font-size: 40px;
+    font-weight: bold;
+    color: white;
+    opacity: 0.9;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .participant-info {
@@ -357,4 +375,41 @@ body {
     .result-message {
         font-size: 22px;
     }
+}
+
+/* Стили для новостей */
+.news-content {
+    background-color: var(--card-background);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 80px;
+}
+
+.news-item {
+    margin-bottom: 20px;
+}
+
+.news-image {
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.news-title {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.news-date {
+    font-size: 14px;
+    color: var(--secondary-text);
+    margin-bottom: 15px;
+}
+
+.news-text p {
+    margin-bottom: 15px;
+    line-height: 1.5;
+    color: var(--text-color);
 } 
