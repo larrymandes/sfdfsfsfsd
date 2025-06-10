@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
-import sqlite3
+import psycopg2
+import psycopg2.extras
 import os
 import json
 import random
@@ -7,13 +8,16 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+# Подключение к PostgreSQL базе данных на Render.com
+DATABASE_URL = "postgresql://base_ee7p_user:0ul4fTwsBo44cJz83xUo0aqaCRXh7eAL@dpg-d14au9u3jp1c73fgqjcg-a.frankfurt-postgres.render.com/base_ee7p"
+
 # Инициализация базы данных
 def init_db():
-    conn = sqlite3.connect('users.db')
+    conn = psycopg2.connect(DATABASE_URL)
     c = conn.cursor()
     c.execute('''
     CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         telegram_id TEXT UNIQUE,
         username TEXT,
         first_name TEXT,
@@ -28,8 +32,18 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Функция для получения соединения с БД
+def get_db_connection():
+    conn = psycopg2.connect(DATABASE_URL)
+    conn.autocommit = True
+    return conn
+
 # Создаем базу данных при запуске
-init_db()
+try:
+    init_db()
+    print("База данных успешно инициализирована")
+except Exception as e:
+    print(f"Ошибка при инициализации базы данных: {e}")
 
 @app.route('/')
 def index():
@@ -42,6 +56,10 @@ def game():
 @app.route('/participants')
 def participants():
     return render_template('participants.html')
+
+@app.route('/news')
+def news():
+    return render_template('news.html')
 
 @app.route('/api/save_user', methods=['POST'])
 def save_user():
@@ -56,11 +74,11 @@ def save_user():
     if not telegram_id:
         return jsonify({'success': False, 'error': 'Отсутствует идентификатор пользователя Telegram'}), 400
     
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     c = conn.cursor()
     
     # Проверяем, существует ли пользователь
-    c.execute('SELECT * FROM users WHERE telegram_id = ?', (str(telegram_id),))
+    c.execute('SELECT * FROM users WHERE telegram_id = %s', (str(telegram_id),))
     existing_user = c.fetchone()
     
     if existing_user:
@@ -68,11 +86,11 @@ def save_user():
         c.execute('''
             UPDATE users SET 
                 last_visit = CURRENT_TIMESTAMP,
-                username = ?,
-                first_name = ?,
-                last_name = ?,
-                photo_url = ?
-            WHERE telegram_id = ?
+                username = %s,
+                first_name = %s,
+                last_name = %s,
+                photo_url = %s
+            WHERE telegram_id = %s
         ''', (
             user.get('username', ''),
             user.get('first_name', ''),
@@ -85,7 +103,7 @@ def save_user():
         c.execute('''
             INSERT INTO users (
                 telegram_id, username, first_name, last_name, photo_url
-            ) VALUES (?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s)
         ''', (
             str(telegram_id),
             user.get('username', ''),
@@ -94,7 +112,6 @@ def save_user():
             user.get('photo_url', '')
         ))
     
-    conn.commit()
     conn.close()
     
     return jsonify({'success': True})
@@ -108,14 +125,15 @@ def try_luck():
     
     telegram_id = data['telegram_id']
     
-    conn = sqlite3.connect('users.db')
+    conn = get_db_connection()
     c = conn.cursor()
     
     # Проверяем, выиграл ли пользователь ранее
-    c.execute('SELECT won FROM users WHERE telegram_id = ?', (str(telegram_id),))
+    c.execute('SELECT won FROM users WHERE telegram_id = %s', (str(telegram_id),))
     result = c.fetchone()
     
     if not result:
+        conn.close()
         return jsonify({'success': False, 'error': 'Пользователь не найден'}), 404
     
     user_won = result[0]
@@ -125,10 +143,10 @@ def try_luck():
         return jsonify({'success': True, 'result': 'already_won'})
     
     # Увеличиваем счетчик попыток
-    c.execute('UPDATE users SET attempts = attempts + 1 WHERE telegram_id = ?', (str(telegram_id),))
+    c.execute('UPDATE users SET attempts = attempts + 1 WHERE telegram_id = %s', (str(telegram_id),))
     
-    # Шанс выигрыша 1%
-    won = random.random() < 0.01
+    # Шанс выигрыша 5%
+    won = random.random() < 0.05
     
     if won:
         # Обновляем данные пользователя при выигрыше
@@ -136,13 +154,11 @@ def try_luck():
             UPDATE users SET 
                 won = 1,
                 win_attempts = attempts
-            WHERE telegram_id = ?
+            WHERE telegram_id = %s
         ''', (str(telegram_id),))
     
-    conn.commit()
-    
     # Получаем текущее количество попыток
-    c.execute('SELECT attempts FROM users WHERE telegram_id = ?', (str(telegram_id),))
+    c.execute('SELECT attempts FROM users WHERE telegram_id = %s', (str(telegram_id),))
     attempts = c.fetchone()[0]
     
     conn.close()
@@ -155,9 +171,8 @@ def try_luck():
 
 @app.route('/api/get_winners', methods=['GET'])
 def get_winners():
-    conn = sqlite3.connect('users.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    conn = get_db_connection()
+    c = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
     c.execute('''
         SELECT telegram_id, username, first_name, last_name, photo_url, win_attempts 
@@ -180,11 +195,10 @@ def check_user_status():
     
     telegram_id = data['telegram_id']
     
-    conn = sqlite3.connect('users.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    conn = get_db_connection()
+    c = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
-    c.execute('SELECT won, attempts FROM users WHERE telegram_id = ?', (str(telegram_id),))
+    c.execute('SELECT won, attempts FROM users WHERE telegram_id = %s', (str(telegram_id),))
     result = c.fetchone()
     
     if not result:
