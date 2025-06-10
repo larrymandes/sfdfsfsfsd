@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Розыгрыш - Новости</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="user-info">
+            <img id="user-avatar" class="user-avatar" src="https://via.placeholder.com/40" alt="Аватар">
+            <span id="user-name" class="user-name">Загрузка...</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <h1 style="text-align: center; margin: 20px 0;">Новости</h1>
+            
+            <div class="news-content">
+                <div class="news-item">
+                    <img src="https://i.pinimg.com/736x/29/0d/d7/290dd753cc82768b67c0a1ad3c8654ae.jpg" alt="Новость" class="news-image">
+                    <h2 class="news-title">Похуй</h2>
+                    <div class="news-date">11 июня 2077</div>
+                    <div class="news-text">
+                        <p>да крч хостинг бесплаптный поэтому очень все тормозит</p>
+                        <p>сорянчик мне не выделили средства на него</p>
+                        <p>увеличил шанс выигрыша с 1 процента до 5</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav-tabs">
+            <a href="/game" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-dice-three"></i></div>
+                <div class="nav-tab-text">Главная</div>
+            </a>
+            <a href="/participants" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-users"></i></div>
+                <div class="nav-tab-text">Участники</div>
+            </a>
+            <a href="/news" class="nav-tab active">
+                <div class="nav-tab-icon"><i class="fas fa-newspaper"></i></div>
+                <div class="nav-tab-text">Новости</div>
+            </a>
+        </nav>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Инициализация пользователя
+            const user = await saveUserToDb();
+            
+            // Если пользователь получен, отображаем его данные
+            if (user) {
+                document.getElementById('user-name').textContent = user.first_name || 'Пользователь';
+                if (user.photo_url) {
+                    document.getElementById('user-avatar').src = user.photo_url;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
