@@ -7,6 +7,160 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        .news-image {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .news-admin-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: none;
+        }
+        .news-edit-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .news-item {
+            position: relative;
+        }
+        
+        /* Стили для редактирования на странице */
+        .editable-content {
+            position: relative;
+            border: 2px solid transparent;
+            padding: 5px;
+            transition: border-color 0.3s;
+        }
+        .editable-content.editing:hover {
+            border-color: #ddd;
+            cursor: text;
+        }
+        .editable-content.editing {
+            border-color: transparent;
+        }
+        .news-text.editable-content {
+            min-height: 100px;
+        }
+        .news-title.editable-content {
+            min-height: 40px;
+            font-weight: bold;
+        }
+        .edit-toolbar {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--bg-color);
+            border-radius: 5px;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        .edit-toolbar button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 3px 8px;
+            cursor: pointer;
+            margin-left: 5px;
+            font-size: 12px;
+        }
+        .image-upload-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            cursor: pointer;
+            z-index: 5;
+            font-size: 14px;
+        }
+        .news-image-wrapper {
+            position: relative;
+        }
+        .news-image-wrapper:hover .image-upload-area {
+            opacity: 1;
+        }
+        .image-upload-area i {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        /* Исправление прокрутки страницы */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background-color: var(--bg-color);
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        .main-content {
+            flex: 1;
+            padding-bottom: 80px; /* Увеличил отступ для навигации */
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .nav-tabs {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--bg-color);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        .nav-tab {
+            flex: 1;
+            text-align: center;
+            text-decoration: none;
+            color: var(--text-color);
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
     <header class="header">
@@ -21,15 +175,19 @@
             <h1 style="text-align: center; margin: 20px 0;" id="news-title">Новости</h1>
             
             <div class="news-content">
-                <div class="news-item">
-                    <img src="https://i.pinimg.com/736x/29/0d/d7/290dd753cc82768b67c0a1ad3c8654ae.jpg" alt="Новость" class="news-image">
-                    <h2 class="news-title">Похуй</h2>
-                    <div class="news-date">11 июня 2077</div>
-                    <div class="news-text">
-                        <p>да крч хостинг бесплаптный поэтому очень все тормозит</p>
-                        <p>сорянчик мне не выделили средства на него</p>
-                        <p>увеличил шанс выигрыша с 1 процента до 5</p>
+                <div class="news-item" id="news-item">
+                    <div class="news-image-wrapper">
+                        <img src="{{ news.image_data if news else 'https://i.pinimg.com/736x/29/0d/d7/290dd753cc82768b67c0a1ad3c8654ae.jpg' }}" alt="Новость" class="news-image" id="news-image">
+                        <div class="image-upload-area" id="image-upload-area" style="display: none;">
+                            <i class="fas fa-camera"></i>
+                            <span>Нажмите для загрузки изображения<br>или Ctrl+V для вставки</span>
+                        </div>
                     </div>
+                    <h2 class="news-title editable-content" id="news-heading" contenteditable="false">{{ news.title if news else 'Похуй' }}</h2>
+                    <div class="news-text editable-content" id="news-text" contenteditable="false">
+                        {{ news.content|safe if news else '<p>да крч хостинг бесплаптный поэтому очень все тормозит</p><p>сорянчик мне не выделили средства на него</p><p>увеличил шанс выигрыша с 1 процента до 5</p>' }}
+                    </div>
+                    <input type="file" id="image-upload" accept="image/*" style="display: none;">
                 </div>
             </div>
         </div>
@@ -65,11 +223,179 @@
                 }
             }
             
+            // Пытаемся загрузить данные новости из API
+            try {
+                const newsResponse = await fetch('/api/get_news');
+                if (newsResponse.ok) {
+                    const newsData = await newsResponse.json();
+                    if (newsData.success && newsData.news) {
+                        // Обновляем данные новости на странице
+                        document.getElementById('news-heading').innerHTML = newsData.news.title;
+                        document.getElementById('news-text').innerHTML = newsData.news.content;
+                        document.getElementById('news-image').src = newsData.news.image_data;
+                    }
+                }
+            } catch (e) {
+                console.error('Ошибка при загрузке новостей:', e);
+            }
+            
             // Проверяем статус админа
             if (typeof checkAdminStatus === 'function') {
                 checkAdminStatus();
+                
+                // Если режим админа активен, сразу включаем режим редактирования
+                if (isAdminMode) {
+                    // Получаем все редактируемые элементы
+                    const editableElements = document.querySelectorAll('.editable-content');
+                    
+                    // Включаем возможность редактирования
+                    editableElements.forEach(element => {
+                        element.contentEditable = "true";
+                        element.classList.add('editing');
+                    });
+                    
+                    // Показываем область загрузки изображения при наведении
+                    const imageUploadArea = document.getElementById('image-upload-area');
+                    if (imageUploadArea) {
+                        imageUploadArea.style.display = 'flex';
+                    }
+                    
+                    // Инициализация загрузки изображения
+                    initImageUpload();
+                    
+                    // Инициализация редактирования контента
+                    initContentEditing();
+                }
             }
         });
+        
+        // Инициализация загрузки изображения
+        function initImageUpload() {
+            const imageUploadArea = document.getElementById('image-upload-area');
+            const imageUpload = document.getElementById('image-upload');
+            
+            // Нажатие на область загрузки
+            imageUploadArea.addEventListener('click', function() {
+                imageUpload.click();
+            });
+            
+            // Обработка выбора файла
+            imageUpload.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('news-image').src = e.target.result;
+                        saveNewsChanges();
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+            
+            // Поддержка вставки из буфера обмена
+            document.addEventListener('paste', function(e) {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (let index in items) {
+                    const item = items[index];
+                    if (item.kind === 'file') {
+                        const blob = item.getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            document.getElementById('news-image').src = e.target.result;
+                            saveNewsChanges();
+                        };
+                        reader.readAsDataURL(blob);
+                        break;
+                    }
+                }
+            });
+        }
+        
+        // Инициализация редактирования контента
+        function initContentEditing() {
+            // Добавляем обработчики событий для автосохранения
+            const headingElement = document.getElementById('news-heading');
+            const textElement = document.getElementById('news-text');
+            
+            // Таймер для автосохранения
+            let saveTimer;
+            
+            // Функция для отложенного сохранения (чтобы не сохранять при каждом нажатии клавиши)
+            function debounceSave() {
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(saveNewsChanges, 1000);
+            }
+            
+            // Обработчики событий для заголовка
+            headingElement.addEventListener('input', debounceSave);
+            
+            // Обработчики событий для текста
+            textElement.addEventListener('input', debounceSave);
+            
+            // Обработчик для преобразования пустой строки в параграф
+            textElement.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    // Предотвращаем стандартное поведение в contenteditable
+                    e.preventDefault();
+                    
+                    // Вставляем новый параграф
+                    document.execCommand('insertHTML', false, '<p><br></p>');
+                }
+            });
+        }
+        
+        // Функция для сохранения изменений
+        function saveNewsChanges() {
+            // Получаем текущие значения
+            const heading = document.getElementById('news-heading').textContent.trim();
+            const textContent = document.getElementById('news-text').innerHTML;
+            const imageSrc = document.getElementById('news-image').src;
+            
+            // Валидация данных
+            if (!heading || !textContent || !imageSrc) {
+                showAdminNotification('Пожалуйста, заполните все поля и добавьте изображение');
+                return;
+            }
+            
+            // Формируем данные для отправки
+            const newsData = {
+                title: heading,
+                date_text: new Date().toLocaleDateString('ru-RU', {
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric'
+                }),
+                content: textContent,
+                image_data: imageSrc
+            };
+            
+            // Отправляем данные на сервер
+            fetch('/api/admin/update_news', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newsData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Новость сохранена!');
+                } else {
+                    showAdminNotification('Ошибка: ' + (data.error || 'Не удалось сохранить новость'));
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при сохранении новости:', error);
+                showAdminNotification('Ошибка сохранения: ' + error.message);
+            });
+        }
+        
+        // Форматирование текста новости (разбивка на параграфы)
+        function formatNewsText(text) {
+            // Разбиваем текст на параграфы
+            const paragraphs = text.split('\n').filter(p => p.trim() !== '');
+            return paragraphs.map(p => `<p>${p}</p>`).join('');
+        }
     </script>
 </body>
 </html>
