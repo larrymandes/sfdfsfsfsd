@@ -10,8 +10,8 @@ import secrets
 
 app = Flask(__name__)
 
-# Подключение к PostgreSQL базе данных на Render.com
-DATABASE_URL = "postgresql://base_ee7p_user:0ul4fTwsBo44cJz83xUo0aqaCRXh7eAL@dpg-d14au9u3jp1c73fgqjcg-a.frankfurt-postgres.render.com/base_ee7p"
+# Подключение к PostgreSQL базе данных
+DATABASE_URL = "postgresql://postgres:Evgenevich12!@82.202.141.209:5432/postgres"
 
 # Соль для пароля и хешированный пароль
 ADMIN_SALT = secrets.token_hex(16)  # Генерируем случайную соль
@@ -382,6 +382,3 @@ def check_admin_password():
         return jsonify({'success': True})
     else:
         return jsonify({'success': False})
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True) 
