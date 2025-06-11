@@ -58,12 +58,22 @@
                 }
             }
 
-            // Получаем список победителей
-            const winners = await getWinners();
+            // Загружаем оба набора данных параллельно
+            const [winnersResponse, lazyUsersResponse] = await Promise.all([
+                fetch('/api/get_winners'),
+                fetch('/api/get_lazy_users')
+            ]);
+
+            const winnersData = await winnersResponse.json();
+            const lazyUsersData = await lazyUsersResponse.json();
+
             const participantsList = document.getElementById('participants-list');
             
             // Очищаем список
             participantsList.innerHTML = '';
+            
+            const winners = winnersData.success ? winnersData.winners : [];
+            const lazyUsers = lazyUsersData.success ? lazyUsersData.lazy_users : [];
             
             // Если победителей нет, показываем сообщение
             if (winners.length === 0) {
@@ -108,6 +118,74 @@
                 `;
                 
                 participantsList.appendChild(participantItem);
+            });
+            
+            // Добавляем разделитель и кнопку для отображения "ленивых" пользователей
+            const lazySection = document.createElement('div');
+            lazySection.className = 'lazy-users-section';
+            
+            lazySection.innerHTML = `
+                <div class="lazy-users-toggle">
+                    <button class="lazy-toggle-btn">
+                        <i class="fas fa-chevron-down"></i> Показать неактивных участников (${lazyUsers.length})
+                    </button>
+                </div>
+                <div class="lazy-users-list" style="display: none;"></div>
+            `;
+            
+            participantsList.appendChild(lazySection);
+            
+            // Предварительно создаем содержимое для списка "ленивых" пользователей
+            const lazyUsersList = lazySection.querySelector('.lazy-users-list');
+            
+            if (lazyUsers.length > 0) {
+                lazyUsers.forEach(user => {
+                    const lazyUserItem = document.createElement('div');
+                    lazyUserItem.className = 'participant-item lazy-user-item';
+                    
+                    const avatarUrl = user.photo_url || 'https://via.placeholder.com/40';
+                    const displayName = user.first_name || 'Участник';
+                    const telegramLink = user.username ? `https://t.me/${user.username}` : null;
+                    
+                    // Добавляем разную информацию в зависимости от количества попыток
+                    const attemptsText = user.attempts > 0 
+                        ? `${user.attempts} ${getAttemptsWord(user.attempts)}, но не выиграл` 
+                        : `ни разу не пробовал`;
+                    
+                    lazyUserItem.innerHTML = `
+                        <img class="user-avatar" src="${avatarUrl}" alt="Аватар">
+                        <div class="participant-info">
+                            <div class="participant-name">${displayName} ${
+                                telegramLink 
+                                ? `<a href="${telegramLink}" target="_blank"><i class="fas fa-trophy lazy-trophy-icon"></i></a>` 
+                                : `<i class="fas fa-trophy lazy-trophy-icon"></i>`
+                            }</div>
+                            <div class="participant-attempts">${attemptsText}</div>
+                        </div>
+                    `;
+                    
+                    lazyUsersList.appendChild(lazyUserItem);
+                });
+            } else {
+                lazyUsersList.innerHTML = `
+                    <div style="text-align: center; padding: 30px 0;">
+                        <i class="fas fa-users" style="font-size: 32px; color: #666; margin-bottom: 10px;"></i>
+                        <p>Нет неактивных участников</p>
+                    </div>
+                `;
+            }
+            
+            // Добавляем функциональность для отображения "ленивых" пользователей
+            const lazyToggleBtn = lazySection.querySelector('.lazy-toggle-btn');
+            
+            lazyToggleBtn.addEventListener('click', function() {
+                if (lazyUsersList.style.display === 'none') {
+                    lazyUsersList.style.display = 'block';
+                    lazyToggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Скрыть неактивных участников';
+                } else {
+                    lazyUsersList.style.display = 'none';
+                    lazyToggleBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Показать неактивных участников (${lazyUsers.length})`;
+                }
             });
         });
         
