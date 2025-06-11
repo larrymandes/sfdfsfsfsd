@@ -48,6 +48,10 @@ body {
     overflow-x: hidden;
 }
 
+body.no-scroll {
+    overflow: hidden;
+}
+
 .container {
     width: 100%;
     max-width: 100%;
@@ -112,6 +116,8 @@ body {
     text-decoration: none;
     min-width: 250px;
     margin-top: 10px;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-large {
@@ -143,10 +149,85 @@ body {
     cursor: not-allowed;
 }
 
+.btn-loading {
+    background-color: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    pointer-events: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-loading .btn-text {
+    opacity: 0.6;
+}
+
+.btn-shimmer {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 2s infinite;
+    z-index: 1;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(0%);
+    }
+    100% {
+        transform: translateX(200%);
+    }
+}
+
+/* Стили для активной кнопки с шиммером (синяя) */
+.btn-shimmer-active {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--accent-color);
+}
+
+.btn-shimmer-active .btn-shimmer {
+    background: linear-gradient(
+        90deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.15) 50%, 
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 1.5s infinite;
+    left: -100%;
+}
+
+/* Стили для неактивной кнопки с шиммером (серая) */
+.btn-shimmer-disabled {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    pointer-events: none;
+}
+
+.btn-shimmer-disabled .btn-shimmer {
+    background: linear-gradient(
+        90deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.05) 50%, 
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 2s infinite;
+}
+
 .header {
     padding: 10px;
     display: flex;
     align-items: center;
+    justify-content: center;
     background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -158,6 +239,7 @@ body {
 .user-info {
     display: flex;
     align-items: center;
+    justify-content: center;
 }
 
 .user-avatar {
@@ -472,4 +554,530 @@ body {
     color: #7f7f7f;
     margin-left: 5px;
     font-size: 14px;
+}
+
+/* Стили для скелетона загрузки участников */
+.skeleton-loading {
+    animation: fade-in 0.5s ease-in-out;
+}
+
+.skeleton-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    background-color: rgba(40, 40, 40, 0.3);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    height: 70px;
+}
+
+.skeleton-item::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0,
+        rgba(255, 255, 255, 0.03) 30%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0)
+    );
+    animation: shimmer-loading 2.5s infinite;
+    z-index: 10;
+}
+
+.skeleton-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.skeleton-content {
+    flex: 1;
+    margin-left: 12px;
+    position: relative;
+}
+
+.skeleton-line {
+    height: 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.skeleton-name {
+    max-width: 70%;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.skeleton-width-50 { width: 50%; }
+.skeleton-width-60 { width: 60%; }
+.skeleton-width-65 { width: 65%; }
+.skeleton-width-70 { width: 70%; }
+.skeleton-width-75 { width: 75%; }
+.skeleton-width-80 { width: 80%; }
+.skeleton-width-85 { width: 85%; }
+.skeleton-width-90 { width: 90%; }
+
+.skeleton-trophy {
+    position: absolute;
+    right: -22px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: rgba(76, 217, 100, 0.2);
+}
+
+.skeleton-attempts {
+    max-width: 60%;
+}
+
+.skeleton-rank {
+    position: absolute;
+    right: 15px;
+    font-size: 38px;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+}
+
+.skeleton-lazy-toggle {
+    margin-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 15px;
+    display: flex;
+    justify-content: center;
+}
+
+.skeleton-btn {
+    width: 200px;
+    height: 36px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 6px;
+}
+
+@keyframes shimmer-loading {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes fade-in {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Админ-стили */
+.admin-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 9000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fade-in 0.3s ease;
+}
+
+.admin-modal {
+    background-color: var(--secondary-color);
+    border-radius: 16px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 320px;
+    z-index: 9001;
+    overflow: hidden;
+    animation: slide-up 0.4s ease;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid var(--border-color);
+}
+
+.admin-modal-small {
+    max-width: 300px;
+}
+
+.admin-sticker {
+    display: flex;
+    justify-content: center;
+    margin-top: -40px;
+    margin-bottom: -20px;
+    position: relative;
+    z-index: 1;
+}
+
+.admin-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.admin-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+.admin-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.admin-close-btn:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.admin-content {
+    padding: 20px;
+}
+
+.admin-content p {
+    margin-bottom: 16px;
+    text-align: center;
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+.admin-passcode {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px auto;
+}
+
+.passcode-input {
+    width: 50px;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 24px;
+    text-align: center;
+    color: var(--text-color);
+    transition: all 0.2s;
+}
+
+.passcode-input:focus {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+.admin-error {
+    color: #ff3b30;
+    text-align: center;
+    font-size: 14px;
+    height: 20px;
+    margin-top: 10px;
+}
+
+.admin-success {
+    animation: success-glow 1s;
+}
+
+.admin-error-shake {
+    animation: shake 0.4s;
+}
+
+.admin-status-indicator {
+    position: relative;
+    background-color: var(--accent-color);
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    animation: fade-in 0.3s ease;
+    margin-left: 8px;
+}
+
+.admin-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background-color: var(--secondary-color);
+    padding: 12px 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 8000;
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    border: 1px solid var(--border-color);
+}
+
+.admin-notification.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.admin-notification-icon {
+    font-size: 16px;
+    color: var(--accent-color);
+}
+
+.admin-notification-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.admin-action-menu {
+    position: fixed;
+    background-color: var(--secondary-color);
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+    padding: 8px 0;
+    z-index: 5000;
+    min-width: 200px;
+    animation: fade-in 0.2s ease;
+    border: 1px solid var(--border-color);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.admin-action-item {
+    padding: 12px 18px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.admin-action-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.delete-user i {
+    color: #ff3b30;
+}
+
+.change-attempts i {
+    color: #30d158;
+}
+
+.admin-input {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 16px;
+    color: var(--text-color);
+    padding: 14px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.admin-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+.btn-admin-apply {
+    background-color: var(--accent-color);
+    width: 100%;
+    margin: 0;
+    font-size: 16px;
+    padding: 14px;
+    border-radius: 12px;
+}
+
+@keyframes slide-up {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slide-down {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes success-glow {
+    0% { box-shadow: 0 0 0 rgba(48, 209, 88, 0); }
+    50% { box-shadow: 0 0 20px rgba(48, 209, 88, 0.5); }
+    100% { box-shadow: 0 0 0 rgba(48, 209, 88, 0); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+/* Стили для упрощенного ввода пароля админа */
+.admin-passcode-simple {
+    margin: 20px auto;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.passcode-display {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.passcode-box {
+    width: 50px;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    position: relative;
+}
+
+.passcode-box.filled::after {
+    content: "•";
+    font-size: 36px;
+    color: var(--text-color);
+}
+
+.passcode-box.active {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+#hidden-passcode-input {
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    z-index: -1;
+}
+
+/* Стили для выпадающего меню админа */
+.admin-dropdown-menu {
+    position: fixed;
+    background-color: var(--secondary-color);
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+    padding: 8px 0;
+    z-index: 5000;
+    min-width: 180px;
+    animation: fade-in 0.2s ease;
+    border: 1px solid var(--border-color);
+}
+
+.admin-dropdown-menu .admin-action-item {
+    padding: 10px 15px;
+}
+
+.admin-action-change-attempts {
+    display: flex;
+    padding: 0 15px 10px 15px;
+    gap: 5px;
+}
+
+.admin-input-small {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-color);
+    padding: 6px 8px;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.admin-input-small:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.admin-btn-small {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.admin-btn-small:hover {
+    background-color: #0069d9;
+}
+
+.admin-btn-small:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
 } 
