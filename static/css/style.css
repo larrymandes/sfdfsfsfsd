@@ -421,7 +421,55 @@ body {
 }
 
 .news-text p {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     line-height: 1.5;
+}
+
+/* Стили для секции "ленивых" пользователей */
+.lazy-users-section {
+    margin-top: 30px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+.lazy-users-toggle {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.lazy-toggle-btn {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 15px;
     color: var(--text-color);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.lazy-toggle-btn:hover {
+    background-color: var(--secondary-color);
+}
+
+.lazy-toggle-btn i {
+    margin-right: 8px;
+}
+
+.lazy-users-list {
+    margin-top: 20px;
+}
+
+.lazy-user-item {
+    opacity: 0.8;
+    background-color: rgba(40, 40, 40, 0.3);
+}
+
+.lazy-trophy-icon {
+    color: #7f7f7f;
+    margin-left: 5px;
+    font-size: 14px;
 } 
