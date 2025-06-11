@@ -214,5 +214,22 @@ def check_user_status():
         'attempts': status['attempts']
     })
 
+@app.route('/api/get_lazy_users', methods=['GET'])
+def get_lazy_users():
+    conn = get_db_connection()
+    c = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
+    c.execute('''
+        SELECT telegram_id, username, first_name, last_name, photo_url, attempts 
+        FROM users 
+        WHERE won = 0
+        ORDER BY attempts DESC
+    ''')
+    
+    lazy_users = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    return jsonify({'success': True, 'lazy_users': lazy_users})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True) 
