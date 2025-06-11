@@ -305,9 +305,21 @@ body {
 }
 
 .success-icon {
-    color: #34C759;
-    font-size: 18px;
-    margin-left: 8px;
+    color: #4cd964;
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.participant-name a {
+    color: #4cd964;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.participant-name a:hover {
+    transform: scale(1.2);
+    filter: brightness(1.2);
+    display: inline-block;
 }
 
 .loading {
