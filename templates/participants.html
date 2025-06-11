@@ -92,11 +92,16 @@
                 
                 const avatarUrl = winner.photo_url || 'https://via.placeholder.com/40';
                 const displayName = winner.first_name || 'Участник';
+                const telegramLink = winner.username ? `https://t.me/${winner.username}` : null;
                 
                 participantItem.innerHTML = `
                     <img class="user-avatar" src="${avatarUrl}" alt="Аватар">
                     <div class="participant-info">
-                        <div class="participant-name">${displayName} <i class="fas fa-trophy success-icon"></i></div>
+                        <div class="participant-name">${displayName} ${
+                            telegramLink 
+                            ? `<a href="${telegramLink}" target="_blank"><i class="fas fa-trophy success-icon"></i></a>` 
+                            : `<i class="fas fa-trophy success-icon"></i>`
+                        }</div>
                         <div class="participant-attempts">Участвует с ${winner.win_attempts} ${getAttemptsWord(winner.win_attempts)}</div>
                     </div>
                     <div class="rank-number">${winner.rank}</div>
