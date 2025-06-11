@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
         start: 'https://assets6.lottiefiles.com/packages/lf20_4zmudffy.json',
         win: 'https://assets3.lottiefiles.com/packages/lf20_touohxv0.json',
         lose1: 'https://assets5.lottiefiles.com/packages/lf20_qalg9rfd.json',
-        lose2: 'https://assets7.lottiefiles.com/packages/lf20_ysrn2iwp.json'
+        lose2: 'https://assets7.lottiefiles.com/packages/lf20_ysrn2iwp.json',
+        pass: 'https://assets1.lottiefiles.com/packages/lf20_06a6pf9i.json'
     };
 
     // Кэш для хранения загруженных стикеров
