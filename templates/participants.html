@@ -76,12 +76,13 @@
                 return;
             }
             
-            // Сортируем победителей по количеству попыток (от наибольшего к наименьшему)
-            winners.sort((a, b) => b.win_attempts - a.win_attempts);
+            // Сортируем победителей по количеству попыток (от наименьшего к наибольшему)
+            winners.sort((a, b) => a.win_attempts - b.win_attempts);
             
-            // Добавляем ранг каждому победителю
+            // Добавляем ранг каждому победителю (в обратном порядке: максимальный ранг - сверху)
+            const totalParticipants = winners.length;
             winners.forEach((winner, index) => {
-                winner.rank = index + 1;
+                winner.rank = totalParticipants - index;
             });
             
             // Добавляем победителей в список
