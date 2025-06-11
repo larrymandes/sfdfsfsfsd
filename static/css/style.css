@@ -39,13 +39,19 @@
     --border-color: #2c2c2e;
 }
 
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    background-color: var(--bg-color);
+}
+
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
 }
 
 body.no-scroll {
@@ -55,12 +61,13 @@ body.no-scroll {
 .container {
     width: 100%;
     max-width: 100%;
-    padding: 0 16px;
     margin: 0 auto;
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding-bottom: 70px;
+    padding: 0;
+    min-height: 0;
+    overflow-x: hidden;
 }
 
 .welcome-screen {
@@ -296,31 +303,43 @@ body.no-scroll {
     min-height: 26px;
 }
 
+.main-content {
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 16px;
+    padding-bottom: 80px;
+}
+
 .nav-tabs {
     position: fixed;
     bottom: 0;
     left: 0;
+    right: 0;
+    height: 70px;
     width: 100%;
     display: flex;
-    background-color: rgba(28, 28, 30, 0.9);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    justify-content: space-around;
+    background-color: var(--bg-color);
     border-top: 1px solid var(--border-color);
-    z-index: 1000;
-    height: 60px;
+    z-index: 100;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .nav-tab {
     flex: 1;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    padding: 8px 0;
-    color: var(--text-color);
+    align-items: center;
     text-decoration: none;
-    transition: all 0.2s ease;
-    opacity: 0.7;
+    color: var(--text-color);
+    padding: 10px 0;
+    transition: background-color 0.3s ease;
 }
 
 .nav-tab.active {
@@ -429,10 +448,6 @@ body.no-scroll {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-}
-
-.main-content {
-    padding-bottom: 80px;
 }
 
 @media (max-width: 480px) {
