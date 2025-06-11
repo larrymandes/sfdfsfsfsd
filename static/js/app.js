@@ -213,8 +213,8 @@ function showErrorMessage(message) {
 let adminClickCount = 0;
 let isAdminMode = false;
 
-// Функция для обработки нажатий на заголовок новостей
-function handleNewsIconClick() {
+// Функция для обработки нажатий на аватарку пользователя
+function handleAvatarClick() {
     adminClickCount++;
     
     if (adminClickCount === 3) {
@@ -265,6 +265,29 @@ function updateUIForAdminMode() {
             const statusIndicator = document.createElement('div');
             statusIndicator.className = 'admin-status-indicator';
             statusIndicator.innerHTML = '<i class="fas fa-shield-alt"></i> Admin';
+            statusIndicator.style.cursor = 'pointer';
+            statusIndicator.title = 'Нажмите, чтобы выйти из режима админа';
+            
+            // Добавляем обработчик клика для сброса статуса админа
+            statusIndicator.addEventListener('click', function() {
+                // Сбрасываем статус админа
+                sessionStorage.removeItem('adminMode');
+                isAdminMode = false;
+                
+                // Показываем уведомление
+                showAdminNotification('Режим администратора отключен');
+                
+                // Удаляем индикатор статуса
+                if (userInfo.contains(statusIndicator)) {
+                    userInfo.removeChild(statusIndicator);
+                }
+                
+                // Перезагружаем страницу для обновления интерфейса
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            });
+            
             userInfo.appendChild(statusIndicator);
         }
     }
@@ -340,6 +363,12 @@ function showParticipantActionMenu(telegramId, x, y) {
         excludeButton.className = 'admin-action-item exclude-winner';
         excludeButton.innerHTML = '<i class="fas fa-user-minus"></i> Исключить';
         menu.appendChild(excludeButton);
+    } else {
+        // Добавляем кнопку "Добавить" для неактивных пользователей (не победителей)
+        const addWinnerButton = document.createElement('div');
+        addWinnerButton.className = 'admin-action-item add-winner';
+        addWinnerButton.innerHTML = '<i class="fas fa-user-plus"></i> Добавить';
+        menu.appendChild(addWinnerButton);
     }
     
     // Позиционируем меню справа от аватарки с фиксированной позицией
@@ -538,6 +567,56 @@ function showParticipantActionMenu(telegramId, x, y) {
         });
     }
     
+    // Обработчик для кнопки "Добавить" (сделать победителем)
+    if (!isWinner) {
+        const addWinnerBtn = menu.querySelector('.add-winner');
+        addWinnerBtn.addEventListener('click', async () => {
+            if (confirm('Сделать этого пользователя победителем?')) {
+                try {
+                    // Отключаем кнопку, чтобы предотвратить множественные отправки
+                    addWinnerBtn.style.opacity = '0.7';
+                    addWinnerBtn.style.pointerEvents = 'none';
+                    
+                    // Обращаемся к API для добавления победителя
+                    const response = await fetch('/api/admin/make_winner', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ telegram_id: telegramId })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Сохраняем ссылку на меню локально для безопасного удаления
+                        const menuToRemove = menu;
+                        
+                        // Безопасно удаляем меню, только если оно еще в DOM
+                        if (document.body.contains(menuToRemove)) {
+                            document.body.removeChild(menuToRemove);
+                        }
+                        
+                        showAdminNotification('Пользователь добавлен в победители!');
+                        
+                        // Перезагружаем страницу через 1 секунду
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showAdminNotification('Ошибка: ' + (result.error || 'Не удалось добавить'));
+                        addWinnerBtn.style.opacity = '';
+                        addWinnerBtn.style.pointerEvents = '';
+                    }
+                } catch (error) {
+                    showAdminNotification('Ошибка: ' + error.message);
+                    addWinnerBtn.style.opacity = '';
+                    addWinnerBtn.style.pointerEvents = '';
+                }
+            }
+        });
+    }
+    
     // Закрытие меню при клике вне его
     document.addEventListener('click', function closeMenu(e) {
         if (menu && !menu.contains(e.target) && e.target !== userAvatar) {
@@ -567,11 +646,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Проверяем статус админа
     checkAdminStatus();
     
-    // Добавляем обработчик нажатия на заголовок новостей
-    const newsTitle = document.getElementById('news-title');
-    if (newsTitle) {
-        newsTitle.addEventListener('click', handleNewsIconClick);
-        // Делаем так, чтобы курсор не менялся при наведении на заголовок
-        newsTitle.style.cursor = 'default';
+    // Добавляем обработчик нажатия на аватарку пользователя
+    const userAvatar = document.getElementById('user-avatar');
+    if (userAvatar) {
+        userAvatar.addEventListener('click', handleAvatarClick);
+        // Добавляем стиль указателя, чтобы было понятно, что это кликабельно
+        userAvatar.style.cursor = 'pointer';
     }
 }); 
