@@ -5,11 +5,17 @@ import os
 import json
 import random
 from datetime import datetime
+import hashlib
+import secrets
 
 app = Flask(__name__)
 
 # Подключение к PostgreSQL базе данных на Render.com
 DATABASE_URL = "postgresql://base_ee7p_user:0ul4fTwsBo44cJz83xUo0aqaCRXh7eAL@dpg-d14au9u3jp1c73fgqjcg-a.frankfurt-postgres.render.com/base_ee7p"
+
+# Соль для пароля и хешированный пароль
+ADMIN_SALT = secrets.token_hex(16)  # Генерируем случайную соль
+ADMIN_PASSWORD_HASH = hashlib.sha256(('1337' + ADMIN_SALT).encode()).hexdigest()
 
 # Инициализация базы данных
 def init_db():
@@ -198,7 +204,7 @@ def check_user_status():
     conn = get_db_connection()
     c = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     
-    c.execute('SELECT won, attempts FROM users WHERE telegram_id = %s', (str(telegram_id),))
+    c.execute('SELECT won, attempts, win_attempts FROM users WHERE telegram_id = %s', (str(telegram_id),))
     result = c.fetchone()
     
     if not result:
@@ -206,12 +212,17 @@ def check_user_status():
         return jsonify({'success': False, 'error': 'Пользователь не найден'}), 404
     
     status = dict(result)
+    is_winner = status['won'] == 1
+    
+    # Для победителей используем win_attempts вместо attempts
+    attempts_to_show = status['win_attempts'] if is_winner and status['win_attempts'] > 0 else status['attempts']
+    
     conn.close()
     
     return jsonify({
         'success': True,
         'won': bool(status['won']),
-        'attempts': status['attempts']
+        'attempts': attempts_to_show
     })
 
 @app.route('/api/get_lazy_users', methods=['GET'])
@@ -230,6 +241,147 @@ def get_lazy_users():
     conn.close()
     
     return jsonify({'success': True, 'lazy_users': lazy_users})
+
+@app.route('/admin', methods=['GET'])
+def admin_page():
+    return render_template('admin.html')
+
+@app.route('/api/admin/delete_user', methods=['POST'])
+def delete_user():
+    data = request.json
+    
+    if not data or 'telegram_id' not in data:
+        return jsonify({'success': False, 'error': 'Отсутствует ID пользователя'}), 400
+    
+    telegram_id = data['telegram_id']
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    try:
+        # Удаляем пользователя по Telegram ID
+        c.execute('DELETE FROM users WHERE telegram_id = %s', (str(telegram_id),))
+        conn.commit()  # Добавляем коммит изменений
+        
+        if c.rowcount > 0:
+            conn.close()
+            return jsonify({'success': True})
+        else:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Пользователь не найден'}), 404
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/update_attempts', methods=['POST'])
+def update_attempts():
+    data = request.json
+    
+    if not data or 'telegram_id' not in data or 'attempts' not in data:
+        return jsonify({'success': False, 'error': 'Неверные данные'}), 400
+    
+    telegram_id = data['telegram_id']
+    attempts = data['attempts']
+    
+    if not isinstance(attempts, int) or attempts < 0:
+        return jsonify({'success': False, 'error': 'Некорректное значение попыток'}), 400
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    try:
+        # Проверяем, является ли пользователь победителем
+        c.execute('SELECT won FROM users WHERE telegram_id = %s', (str(telegram_id),))
+        user_data = c.fetchone()
+        
+        if not user_data:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Пользователь не найден'}), 404
+        
+        is_winner = user_data[0] == 1
+        
+        # Обновляем оба поля - attempts и win_attempts
+        # Это гарантирует согласованность данных
+        if is_winner:
+            c.execute('UPDATE users SET attempts = %s, win_attempts = %s WHERE telegram_id = %s', 
+                     (attempts, attempts, str(telegram_id)))
+        else:
+            c.execute('UPDATE users SET attempts = %s WHERE telegram_id = %s', 
+                     (attempts, str(telegram_id)))
+        
+        conn.commit()  # Добавляем коммит изменений
+        
+        if c.rowcount > 0:
+            conn.close()
+            return jsonify({'success': True})
+        else:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Не удалось обновить пользователя'}), 500
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/exclude_winner', methods=['POST'])
+def exclude_winner():
+    data = request.json
+    
+    if not data or 'telegram_id' not in data:
+        return jsonify({'success': False, 'error': 'Отсутствует ID пользователя'}), 400
+    
+    telegram_id = data['telegram_id']
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    try:
+        # Проверяем, является ли пользователь победителем и получаем его попытки
+        c.execute('SELECT won, win_attempts FROM users WHERE telegram_id = %s', (str(telegram_id),))
+        user_data = c.fetchone()
+        
+        if not user_data:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Пользователь не найден'}), 404
+        
+        is_winner = user_data[0] == 1
+        win_attempts = user_data[1] if user_data[1] is not None else 0
+        
+        # Если пользователь не победитель, возвращаем ошибку
+        if not is_winner:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Пользователь не является победителем'}), 400
+        
+        # Отменяем статус победителя и копируем win_attempts в attempts
+        c.execute('UPDATE users SET won = 0, attempts = %s WHERE telegram_id = %s', 
+                 (win_attempts, str(telegram_id)))
+        
+        conn.commit()  # Сохраняем изменения
+        
+        if c.rowcount > 0:
+            conn.close()
+            return jsonify({'success': True})
+        else:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Не удалось обновить пользователя'}), 500
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/check_admin_password', methods=['POST'])
+def check_admin_password():
+    password = request.json.get('password')
+    if not password:
+        return jsonify({'success': False, 'error': 'No password provided'}), 400
+    
+    # Хешируем введенный пароль с солью
+    password_hash = hashlib.sha256((password + ADMIN_SALT).encode()).hexdigest()
+    
+    # Сравниваем хеши (безопасное сравнение)
+    is_valid = secrets.compare_digest(password_hash, ADMIN_PASSWORD_HASH)
+    
+    if is_valid:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True) 
