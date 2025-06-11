@@ -7,6 +7,7 @@ import random
 from datetime import datetime
 import hashlib
 import secrets
+import base64
 
 app = Flask(__name__)
 
@@ -35,6 +36,36 @@ def init_db():
         last_visit TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
+    
+    # Создаем таблицу для новостей, если её еще нет
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS news (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        date_text TEXT NOT NULL,
+        content TEXT NOT NULL,
+        image_data TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    
+    # Проверяем, есть ли у нас хоть одна новость
+    c.execute('SELECT COUNT(*) FROM news')
+    news_count = c.fetchone()[0]
+    
+    # Если нет новостей, создаем тестовую новость
+    if news_count == 0:
+        c.execute('''
+        INSERT INTO news (title, date_text, content, image_data)
+        VALUES (%s, %s, %s, %s)
+        ''', (
+            'Похуй', 
+            '11 июня 2077', 
+            '<p>да крч хостинг бесплаптный поэтому очень все тормозит</p><p>сорянчик мне не выделили средства на него</p><p>увеличил шанс выигрыша с 1 процента до 5</p>',
+            'https://i.pinimg.com/736x/29/0d/d7/290dd753cc82768b67c0a1ad3c8654ae.jpg'
+        ))
+    
     conn.commit()
     conn.close()
 
@@ -65,7 +96,19 @@ def participants():
 
 @app.route('/news')
 def news():
-    return render_template('news.html')
+    # Получаем последнюю новость из базы данных
+    conn = get_db_connection()
+    c = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    c.execute('SELECT * FROM news ORDER BY created_at DESC LIMIT 1')
+    news_item = c.fetchone()
+    conn.close()
+    
+    # Если новость найдена, передаем её в шаблон
+    if news_item:
+        return render_template('news.html', news=dict(news_item))
+    else:
+        # Если новостей нет, показываем шаблон без данных
+        return render_template('news.html')
 
 @app.route('/api/save_user', methods=['POST'])
 def save_user():
@@ -382,6 +425,115 @@ def check_admin_password():
         return jsonify({'success': True})
     else:
         return jsonify({'success': False})
+
+@app.route('/api/admin/make_winner', methods=['POST'])
+def make_winner():
+    data = request.json
+    
+    if not data or 'telegram_id' not in data:
+        return jsonify({'success': False, 'error': 'Отсутствует ID пользователя'}), 400
+    
+    telegram_id = data['telegram_id']
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    try:
+        # Проверяем, является ли пользователь уже победителем
+        c.execute('SELECT won, attempts FROM users WHERE telegram_id = %s', (str(telegram_id),))
+        user_data = c.fetchone()
+        
+        if not user_data:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Пользователь не найден'}), 404
+        
+        is_winner = user_data[0] == 1
+        attempts = user_data[1] if user_data[1] is not None else 0
+        
+        # Если пользователь уже победитель, возвращаем ошибку
+        if is_winner:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Пользователь уже является победителем'}), 400
+        
+        # Делаем пользователя победителем и копируем attempts в win_attempts
+        c.execute('UPDATE users SET won = 1, win_attempts = %s WHERE telegram_id = %s', 
+                 (attempts, str(telegram_id)))
+        
+        conn.commit()  # Сохраняем изменения
+        
+        if c.rowcount > 0:
+            conn.close()
+            return jsonify({'success': True})
+        else:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Не удалось обновить пользователя'}), 500
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/get_news', methods=['GET'])
+def get_news():
+    conn = get_db_connection()
+    c = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    c.execute('SELECT * FROM news ORDER BY created_at DESC LIMIT 1')
+    news_item = c.fetchone()
+    conn.close()
+    
+    if news_item:
+        return jsonify({
+            'success': True,
+            'news': dict(news_item)
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': 'Новости не найдены'
+        }), 404
+
+@app.route('/api/admin/update_news', methods=['POST'])
+def update_news():
+    data = request.json
+    
+    if not data or 'title' not in data or 'date_text' not in data or 'content' not in data or 'image_data' not in data:
+        return jsonify({'success': False, 'error': 'Неверные данные'}), 400
+    
+    title = data['title']
+    date_text = data['date_text']
+    content = data['content']
+    image_data = data['image_data']
+    
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    try:
+        # Проверяем наличие новости
+        c.execute('SELECT id FROM news ORDER BY created_at DESC LIMIT 1')
+        news_id = c.fetchone()
+        
+        if news_id:
+            # Обновляем существующую новость
+            c.execute('''
+            UPDATE news SET 
+                title = %s, 
+                date_text = %s, 
+                content = %s, 
+                image_data = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            ''', (title, date_text, content, image_data, news_id[0]))
+        else:
+            # Создаем новую новость
+            c.execute('''
+            INSERT INTO news (title, date_text, content, image_data)
+            VALUES (%s, %s, %s, %s)
+            ''', (title, date_text, content, image_data))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True) 
