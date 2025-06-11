@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <!-- Предзагрузка стикеров -->
+    <link rel="preload" href="{{ url_for('static', filename='stickers/pass.json') }}" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="{{ url_for('static', filename='stickers/passyes.json') }}" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="{{ url_for('static', filename='stickers/nopass.json') }}" as="fetch" crossorigin="anonymous">
+</head>
+<body>
+    <header class="header">
+        <div class="user-info">
+            <img id="user-avatar" class="user-avatar" src="https://via.placeholder.com/40" alt="Аватар">
+            <span id="user-name" class="user-name">Загрузка...</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="game-screen">
+            <div class="game-container">
+                <div class="result-container">
+                    <div id="result-message" class="result-message">Введите пароль админа</div>
+                    
+                    <!-- Lottie анимация -->
+                    <div class="sticker-container" id="sticker-container">
+                        <lottie-player
+                            id="sticker"
+                            src="{{ url_for('static', filename='stickers/pass.json') }}"
+                            background="transparent"
+                            speed="1"
+                            loop
+                            autoplay
+                        ></lottie-player>
+                    </div>
+
+                    <!-- Ввод пароля -->
+                    <div class="admin-passcode-simple">
+                        <div class="passcode-display">
+                            <div class="passcode-box" data-index="0"></div>
+                            <div class="passcode-box" data-index="1"></div>
+                            <div class="passcode-box" data-index="2"></div>
+                            <div class="passcode-box" data-index="3"></div>
+                            <input type="tel" id="hidden-passcode-input" maxlength="4" autocomplete="off" pattern="[0-9]*" inputmode="numeric" autofocus>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav-tabs">
+            <a href="/news" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-newspaper"></i></div>
+                <div class="nav-tab-text">Новости</div>
+            </a>
+            <a href="/game" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-dice-three"></i></div>
+                <div class="nav-tab-text">Главная</div>
+            </a>
+            <a href="/participants" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-users"></i></div>
+                <div class="nav-tab-text">Участники</div>
+            </a>
+        </nav>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        // Немедленно инициализируем ввод пароля
+        (function() {
+            const hiddenInput = document.getElementById('hidden-passcode-input');
+            const passcodeBoxes = document.querySelectorAll('.passcode-box');
+            
+            // Устанавливаем класс active на первое поле
+            if (passcodeBoxes.length > 0) {
+                passcodeBoxes[0].classList.add('active');
+            }
+            
+            // Сразу устанавливаем фокус на скрытое поле ввода
+            hiddenInput.focus();
+            
+            // При клике на любое поле - фокус на скрытый инпут
+            passcodeBoxes.forEach((box) => {
+                box.addEventListener('click', () => {
+                    hiddenInput.focus();
+                });
+            });
+            
+            // Обработка ввода цифр
+            hiddenInput.addEventListener('input', function() {
+                const value = this.value;
+                
+                // Отображаем введенные значения в визуальных боксах
+                passcodeBoxes.forEach((box, index) => {
+                    // Очищаем классы
+                    box.classList.remove('filled', 'active');
+                    
+                    // Если цифра введена, отмечаем бокс как заполненный
+                    if (index < value.length) {
+                        box.classList.add('filled');
+                    }
+                    
+                    // Добавляем класс active к текущему полю
+                    if (index === value.length && index < passcodeBoxes.length) {
+                        box.classList.add('active');
+                    }
+                });
+                
+                // Проверяем пароль при вводе всех 4 цифр
+                if (value.length === 4) {
+                    checkPassword(value);
+                }
+            });
+            
+            // Обеспечиваем фокус на скрытом инпуте при клике в любом месте контейнера
+            document.querySelector('.passcode-display').addEventListener('click', () => {
+                hiddenInput.focus();
+            });
+            
+            // Обеспечиваем повторный фокус при клике в любом месте страницы
+            document.addEventListener('click', () => {
+                if (document.activeElement !== hiddenInput) {
+                    hiddenInput.focus();
+                }
+            });
+        })(); // Самовызывающаяся функция для немедленного выполнения
+        
+        // Отдельная функция для загрузки данных пользователя (выполняется асинхронно)
+        // Не блокирует ввод пароля
+        async function loadUserData() {
+            const user = await saveUserToDb();
+            if (user) {
+                document.getElementById('user-name').textContent = user.first_name || 'Пользователь';
+                if (user.photo_url) {
+                    document.getElementById('user-avatar').src = user.photo_url;
+                }
+            }
+        }
+        
+        // Запускаем загрузку пользовательских данных отдельно
+        document.addEventListener('DOMContentLoaded', loadUserData);
+        
+        // Функция для обновления стикера
+        function updateSticker(src, loop = false) {
+            const container = document.getElementById('sticker-container');
+            const oldSticker = document.getElementById('sticker');
+            
+            // Создаем новый элемент lottie-player
+            const newSticker = document.createElement('lottie-player');
+            newSticker.setAttribute('id', 'sticker');
+            newSticker.setAttribute('src', src);
+            newSticker.setAttribute('background', 'transparent');
+            newSticker.setAttribute('speed', '1');
+            newSticker.setAttribute('autoplay', '');
+            
+            if (loop) {
+                newSticker.setAttribute('loop', '');
+            }
+            
+            // Удаляем старый стикер и добавляем новый
+            if (oldSticker) {
+                container.removeChild(oldSticker);
+            }
+            container.appendChild(newSticker);
+            
+            return newSticker;
+        }
+        
+        // Функция проверки пароля через API
+        async function checkPassword(passcode) {
+            // Показываем состояние загрузки
+            document.getElementById('result-message').textContent = 'Проверка...';
+            
+            try {
+                // Отправляем запрос на сервер для проверки пароля
+                const response = await fetch('/api/check_admin_password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: passcode })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Правильный пароль
+                    document.getElementById('result-message').textContent = 'Доступ предоставлен';
+                    
+                    // Меняем стикер на успешный
+                    updateSticker("{{ url_for('static', filename='stickers/passyes.json') }}");
+                    
+                    // Активируем админ-режим
+                    sessionStorage.setItem('adminMode', 'true');
+                    
+                    // Переходим на страницу участников
+                    setTimeout(() => {
+                        window.location.href = '/participants';
+                    }, 1500);
+                } else {
+                    // Неправильный пароль
+                    document.getElementById('result-message').textContent = 'Неверный пароль';
+                    
+                    // Меняем стикер на ошибку
+                    updateSticker("{{ url_for('static', filename='stickers/nopass.json') }}");
+                    
+                    // Очищаем поля ввода
+                    const hiddenInput = document.getElementById('hidden-passcode-input');
+                    const passcodeBoxes = document.querySelectorAll('.passcode-box');
+                    hiddenInput.value = '';
+                    passcodeBoxes.forEach(box => {
+                        box.classList.remove('filled');
+                    });
+                    
+                    // Устанавливаем активное поле на первое
+                    passcodeBoxes.forEach((box, index) => {
+                        box.classList.toggle('active', index === 0);
+                    });
+                    
+                    // Через некоторое время восстанавливаем стикер
+                    setTimeout(() => {
+                        document.getElementById('result-message').textContent = 'Введите пароль админа';
+                        updateSticker("{{ url_for('static', filename='stickers/pass.json') }}", true);
+                        hiddenInput.focus();
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Ошибка при проверке пароля:', error);
+                document.getElementById('result-message').textContent = 'Ошибка проверки';
+                
+                // Очищаем поля ввода
+                const hiddenInput = document.getElementById('hidden-passcode-input');
+                hiddenInput.value = '';
+                
+                // Через некоторое время восстанавливаем стикер
+                setTimeout(() => {
+                    document.getElementById('result-message').textContent = 'Введите пароль админа';
+                    updateSticker("{{ url_for('static', filename='stickers/pass.json') }}", true);
+                    hiddenInput.focus();
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html> 

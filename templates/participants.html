@@ -21,14 +21,70 @@
             <h1 style="text-align: center; margin: 20px 0;">Участники розыгрыша</h1>
             
             <div class="participants-list" id="participants-list">
-                <div style="text-align: center; padding: 30px 0;">
-                    <div class="loader"></div>
-                    <p style="margin-top: 20px;">Загрузка списка участников...</p>
+                <!-- Скелетон загрузки с шиммер-эффектом -->
+                <div class="skeleton-loading">
+                    <div class="skeleton-item">
+                        <div class="skeleton-avatar"></div>
+                        <div class="skeleton-content">
+                            <div class="skeleton-line skeleton-name skeleton-width-90">
+                                <span class="skeleton-trophy"></span>
+                            </div>
+                            <div class="skeleton-line skeleton-attempts skeleton-width-70"></div>
+                        </div>
+                        <div class="skeleton-rank">00</div>
+                    </div>
+                    <div class="skeleton-item">
+                        <div class="skeleton-avatar"></div>
+                        <div class="skeleton-content">
+                            <div class="skeleton-line skeleton-name skeleton-width-60">
+                                <span class="skeleton-trophy"></span>
+                            </div>
+                            <div class="skeleton-line skeleton-attempts skeleton-width-80"></div>
+                        </div>
+                        <div class="skeleton-rank">00</div>
+                    </div>
+                    <div class="skeleton-item">
+                        <div class="skeleton-avatar"></div>
+                        <div class="skeleton-content">
+                            <div class="skeleton-line skeleton-name skeleton-width-75">
+                                <span class="skeleton-trophy"></span>
+                            </div>
+                            <div class="skeleton-line skeleton-attempts skeleton-width-65"></div>
+                        </div>
+                        <div class="skeleton-rank">00</div>
+                    </div>
+                    <div class="skeleton-item">
+                        <div class="skeleton-avatar"></div>
+                        <div class="skeleton-content">
+                            <div class="skeleton-line skeleton-name skeleton-width-50">
+                                <span class="skeleton-trophy"></span>
+                            </div>
+                            <div class="skeleton-line skeleton-attempts skeleton-width-75"></div>
+                        </div>
+                        <div class="skeleton-rank">00</div>
+                    </div>
+                    <div class="skeleton-item">
+                        <div class="skeleton-avatar"></div>
+                        <div class="skeleton-content">
+                            <div class="skeleton-line skeleton-name skeleton-width-85">
+                                <span class="skeleton-trophy"></span>
+                            </div>
+                            <div class="skeleton-line skeleton-attempts skeleton-width-60"></div>
+                        </div>
+                        <div class="skeleton-rank">00</div>
+                    </div>
+                    <div class="skeleton-lazy-toggle">
+                        <button class="skeleton-btn"></button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <nav class="nav-tabs">
+            <a href="/news" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-newspaper"></i></div>
+                <div class="nav-tab-text">Новости</div>
+            </a>
             <a href="/game" class="nav-tab">
                 <div class="nav-tab-icon"><i class="fas fa-dice-three"></i></div>
                 <div class="nav-tab-text">Главная</div>
@@ -37,20 +93,17 @@
                 <div class="nav-tab-icon"><i class="fas fa-users"></i></div>
                 <div class="nav-tab-text">Участники</div>
             </a>
-            <a href="/news" class="nav-tab">
-                <div class="nav-tab-icon"><i class="fas fa-newspaper"></i></div>
-                <div class="nav-tab-text">Новости</div>
-            </a>
         </nav>
     </div>
     
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
-            // Инициализация пользователя
+            // Инициализация пользователя в фоновом режиме
             const user = await saveUserToDb();
             
-            // Если пользователь получен, отображаем его данные
+            // Пользовательские данные уже должны быть отображены из кеша
+            // Обновим отображение только если получены новые данные
             if (user) {
                 document.getElementById('user-name').textContent = user.first_name || 'Пользователь';
                 if (user.photo_url) {
@@ -100,6 +153,9 @@
                 const participantItem = document.createElement('div');
                 participantItem.className = 'participant-item';
                 
+                // Добавляем идентификатор пользователя Telegram для функций админа
+                participantItem.dataset.telegramId = winner.telegram_id;
+                
                 const avatarUrl = winner.photo_url || 'https://via.placeholder.com/40';
                 const displayName = winner.first_name || 'Участник';
                 const telegramLink = winner.username ? `https://t.me/${winner.username}` : null;
@@ -142,6 +198,9 @@
                 lazyUsers.forEach(user => {
                     const lazyUserItem = document.createElement('div');
                     lazyUserItem.className = 'participant-item lazy-user-item';
+                    
+                    // Добавляем идентификатор пользователя Telegram для функций админа
+                    lazyUserItem.dataset.telegramId = user.telegram_id;
                     
                     const avatarUrl = user.photo_url || 'https://via.placeholder.com/40';
                     const displayName = user.first_name || 'Участник';
@@ -187,6 +246,12 @@
                     lazyToggleBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Показать неактивных участников (${lazyUsers.length})`;
                 }
             });
+
+            // После полной загрузки данных, проверяем статус админа для настройки UI
+            if (typeof setupParticipantsAdminUI === 'function' && typeof checkAdminStatus === 'function') {
+                checkAdminStatus();
+                setupParticipantsAdminUI();
+            }
         });
         
         // Функция для правильного склонения слова "попытка"

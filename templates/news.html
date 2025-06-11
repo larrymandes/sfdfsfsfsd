@@ -18,7 +18,7 @@
 
     <div class="container">
         <div class="main-content">
-            <h1 style="text-align: center; margin: 20px 0;">Новости</h1>
+            <h1 style="text-align: center; margin: 20px 0;" id="news-title">Новости</h1>
             
             <div class="news-content">
                 <div class="news-item">
@@ -35,6 +35,10 @@
         </div>
 
         <nav class="nav-tabs">
+            <a href="/news" class="nav-tab active">
+                <div class="nav-tab-icon"><i class="fas fa-newspaper"></i></div>
+                <div class="nav-tab-text">Новости</div>
+            </a>
             <a href="/game" class="nav-tab">
                 <div class="nav-tab-icon"><i class="fas fa-dice-three"></i></div>
                 <div class="nav-tab-text">Главная</div>
@@ -43,25 +47,27 @@
                 <div class="nav-tab-icon"><i class="fas fa-users"></i></div>
                 <div class="nav-tab-text">Участники</div>
             </a>
-            <a href="/news" class="nav-tab active">
-                <div class="nav-tab-icon"><i class="fas fa-newspaper"></i></div>
-                <div class="nav-tab-text">Новости</div>
-            </a>
         </nav>
     </div>
     
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async function() {
-            // Инициализация пользователя
+            // Инициализация пользователя в фоновом режиме
             const user = await saveUserToDb();
             
-            // Если пользователь получен, отображаем его данные
+            // Пользовательские данные уже должны быть отображены из кеша
+            // Обновим отображение только если получены новые данные
             if (user) {
                 document.getElementById('user-name').textContent = user.first_name || 'Пользователь';
                 if (user.photo_url) {
                     document.getElementById('user-avatar').src = user.photo_url;
                 }
+            }
+            
+            // Проверяем статус админа
+            if (typeof checkAdminStatus === 'function') {
+                checkAdminStatus();
             }
         });
     </script>

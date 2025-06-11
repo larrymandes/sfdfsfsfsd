@@ -37,14 +37,21 @@
                         ></lottie-player>
                     </div>
 
-                    <div id="attempts-counter" class="attempts-counter">Попыток: 0</div>
+                    <div id="attempts-counter" class="attempts-counter">Вы еще не испытывали удачу</div>
                 </div>
 
-                <button id="try-luck-btn" class="btn btn-large">Испытать удачу</button>
+                <button id="try-luck-btn" class="btn btn-large btn-shimmer-active">
+                    <span class="btn-text">Испытать удачу</span>
+                    <span class="btn-shimmer"></span>
+                </button>
             </div>
         </div>
 
         <nav class="nav-tabs">
+            <a href="/news" class="nav-tab">
+                <div class="nav-tab-icon"><i class="fas fa-newspaper"></i></div>
+                <div class="nav-tab-text">Новости</div>
+            </a>
             <a href="/game" class="nav-tab active">
                 <div class="nav-tab-icon"><i class="fas fa-dice-three"></i></div>
                 <div class="nav-tab-text">Главная</div>
@@ -52,10 +59,6 @@
             <a href="/participants" class="nav-tab">
                 <div class="nav-tab-icon"><i class="fas fa-users"></i></div>
                 <div class="nav-tab-text">Участники</div>
-            </a>
-            <a href="/news" class="nav-tab">
-                <div class="nav-tab-icon"><i class="fas fa-newspaper"></i></div>
-                <div class="nav-tab-text">Новости</div>
             </a>
         </nav>
     </div>
@@ -97,6 +100,26 @@
             }
         }
         
+        // Функция для отображения состояния выигрыша
+        function showWonState() {
+            loadSticker('sticker', "{{ url_for('static', filename='stickers/win.json') }}", false);
+            document.getElementById('result-message').textContent = 'Поздравляем! Вы наконец-то выиграли!';
+            
+            // Блокируем кнопку и делаем её серой навсегда
+            const tryLuckBtn = document.getElementById('try-luck-btn');
+            tryLuckBtn.disabled = true;
+            tryLuckBtn.classList.remove('btn-shimmer-active');
+            tryLuckBtn.classList.add('btn-shimmer-disabled');
+            tryLuckBtn.classList.add('btn-secondary');
+        }
+        
+        // Немедленно проверяем localStorage на предмет выигрыша
+        if (localStorage.getItem('userWon') === 'true') {
+            // Если в localStorage записано, что пользователь выиграл - сразу показываем это
+            // Не ждем загрузку с сервера
+            showWonState();
+        }
+        
         document.addEventListener('DOMContentLoaded', async function() {
             // Блокировка кнопки на 1.5 секунды после нажатия
             let buttonLocked = false;
@@ -104,39 +127,38 @@
             // Инициализация пользователя
             const user = await saveUserToDb();
             
-            // Если пользователь получен, отображаем его данные
+            // Пользовательские данные уже должны быть отображены из кеша
+            // Если данные изменились, обновляем отображение
             if (user) {
                 document.getElementById('user-name').textContent = user.first_name || 'Пользователь';
                 if (user.photo_url) {
                     document.getElementById('user-avatar').src = user.photo_url;
                 }
             }
+            
+            // Проверяем статус админа
+            if (typeof checkAdminStatus === 'function') {
+                checkAdminStatus();
+            }
 
             // Проверяем статус пользователя (выиграл или нет)
             const userStatus = await checkUserStatus();
             document.getElementById('attempts-counter').textContent = `Попыток: ${userStatus.attempts}`;
 
-            // Если пользователь уже выиграл, показываем соответствующий стикер и сообщение
+            // Если пользователь уже выиграл по данным с сервера, подтверждаем состояние
             if (userStatus.won) {
-                loadSticker('sticker', "{{ url_for('static', filename='stickers/win.json') }}", false);
-                document.getElementById('result-message').textContent = 'Поздравляем! Вы наконец-то выиграли!';
-                
-                // Блокируем кнопку и делаем её серой навсегда
-                const tryLuckBtn = document.getElementById('try-luck-btn');
-                tryLuckBtn.disabled = true;
-                tryLuckBtn.classList.add('btn-secondary');
-                
-                // Сохраняем состояние в localStorage для сохранения при навигации
+                // Сохраняем состояние в localStorage для быстрого отображения при следующих заходах
                 localStorage.setItem('userWon', 'true');
-            } else if (localStorage.getItem('userWon') === 'true') {
-                // Если пользователь вернулся с другой страницы, но ранее выиграл
-                loadSticker('sticker', "{{ url_for('static', filename='stickers/win.json') }}", false);
-                document.getElementById('result-message').textContent = 'Поздравляем! Вы наконец-то выиграли!';
-                
-                // Блокируем кнопку и делаем её серой навсегда
-                const tryLuckBtn = document.getElementById('try-luck-btn');
-                tryLuckBtn.disabled = true;
-                tryLuckBtn.classList.add('btn-secondary');
+                // Показываем состояние выигрыша, если еще не показано
+                showWonState();
+            } else {
+                // Если пользователь НЕ победитель по данным сервера, но в localStorage отмечен как победитель
+                if (localStorage.getItem('userWon') === 'true') {
+                    // Синхронизируем с сервером - удаляем отметку о победе
+                    localStorage.removeItem('userWon');
+                    // Перезагружаем страницу для обновления интерфейса
+                    location.reload();
+                }
             }
 
             // Обработка кликов по вкладкам навигации - сохранение состояния выигрыша
@@ -156,12 +178,15 @@
                 
                 // Блокируем кнопку на 1.5 секунды
                 buttonLocked = true;
-                document.getElementById('try-luck-btn').classList.add('btn-locked');
+                const tryLuckBtn = document.getElementById('try-luck-btn');
+                tryLuckBtn.classList.remove('btn-shimmer-active');
+                tryLuckBtn.classList.add('btn-shimmer-disabled');
                 
                 setTimeout(() => {
                     buttonLocked = false;
-                    if (!document.getElementById('try-luck-btn').disabled) {
-                        document.getElementById('try-luck-btn').classList.remove('btn-locked');
+                    if (!tryLuckBtn.disabled) {
+                        tryLuckBtn.classList.remove('btn-shimmer-disabled');
+                        tryLuckBtn.classList.add('btn-shimmer-active');
                     }
                 }, 1500);
                 
@@ -178,6 +203,8 @@
                         // Блокируем кнопку и делаем её серой навсегда
                         const tryLuckBtn = document.getElementById('try-luck-btn');
                         tryLuckBtn.disabled = true;
+                        tryLuckBtn.classList.remove('btn-shimmer-active');
+                        tryLuckBtn.classList.add('btn-shimmer-disabled');
                         tryLuckBtn.classList.add('btn-secondary');
                         
                         // Сохраняем состояние в localStorage
@@ -191,6 +218,8 @@
                         // Блокируем кнопку и делаем её серой навсегда
                         const tryLuckBtn = document.getElementById('try-luck-btn');
                         tryLuckBtn.disabled = true;
+                        tryLuckBtn.classList.remove('btn-shimmer-active');
+                        tryLuckBtn.classList.add('btn-shimmer-disabled');
                         tryLuckBtn.classList.add('btn-secondary');
                         
                         // Сохраняем состояние в localStorage

@@ -8,7 +8,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 </head>
-<body>
+<body class="no-scroll">
     <div class="container">
         <div class="welcome-screen">
             <!-- Lottie анимация вместо TGS -->
@@ -23,10 +23,13 @@
                 ></lottie-player>
             </div>
             
-            <h1>Испытай свою удачу</h1>
-            <p>Это приложение разработано специально для тгк @cheatstandoffcs2. Проверь, насколько тебе улыбается удача! Нам не выделили средств на него, поэтому оно очень сильно тормозит. Сорянчик.</p>
+            <h1>ЭЙ ТЫ! Не втыкаешь что ли? </h1>
+            <p>Это ЕБЕЙШЕЕ приложение для РЕАЛЬНЫХ пацанов! Крути рулетку пока не выиграешь - попытки бесконечные! Не будь лохом, попади в ТОПЧИК! Серые неудачники внизу - это позор!</p>
             
-            <a href="/game" class="btn btn-large">Продолжить</a>
+            <a href="/game" id="continue-btn" class="btn btn-large btn-loading">
+                <span class="btn-text">Продолжить</span>
+                <span class="btn-shimmer"></span>
+            </a>
         </div>
     </div>
     
@@ -69,6 +72,20 @@
             if (tg) {
                 saveUserToDb();
             }
+            
+            // Управление загрузкой кнопки
+            const continueBtn = document.getElementById('continue-btn');
+            continueBtn.addEventListener('click', function(e) {
+                // Блокируем переход, если кнопка еще не активирована
+                if (continueBtn.classList.contains('btn-loading')) {
+                    e.preventDefault();
+                }
+            });
+            
+            // Активируем кнопку через 3 секунды
+            setTimeout(function() {
+                continueBtn.classList.remove('btn-loading');
+            }, 3000);
         });
     </script>
 </body>
